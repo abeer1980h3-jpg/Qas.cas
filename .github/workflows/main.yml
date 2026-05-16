@@ -27,9 +27,6 @@ jobs:
     - name: Install Dependencies
       run: npm install
 
-        - name: Sync Web Code to Android
-      run: npx cap sync android
-      
     - name: Sync Web Code to Android
       run: npx cap sync android
 
