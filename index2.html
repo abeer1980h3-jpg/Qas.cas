@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق تصوير وقص الهويات</title>
+    <!-- استدعاء مكتبة القص المظهر الخاص بها -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        video, img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        .img-container {
+            max-height: 400px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #downloadBtn {
+            background-color: #28a745;
+        }
+        #downloadBtn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📷 تطبيق تصوير وقص الهويات والورق</h2>
+    <p>افتح الكاميرا، التقط الصورة، ثم حدد أطراف الهوية لقصها بدقة.</p>
+
+    <!-- أزرار التحكم -->
+    <button id="startCam">فتح الكاميرا</button>
+    <button id="captureBtn" style="display:none;">إلتقاط الصورة</button>
+    <button id="cropBtn" style="display:none;">قص الجزء المحدد</button>
+    <a id="downloadBtn" style="display:none;" download="cropped_id.png"><button style="background:none; margin:0; padding:0;">تحميل الصورة المقصوصة</button></a>
+
+    <!-- عناصر عرض الفيديو والصورة -->
+    <video id="video" autoplay playsinline></video>
+    
+    <div class="img-container">
+        <img id="image" src="">
+    </div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+</div>
+
+<!-- استدعاء ملف الجافاسكربت للمكتبة -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+    const video = document.getElementById('video');
+    const image = document.getElementById('image');
+    const canvas = document.getElementById('canvas');
+    const startCamBtn = document.getElementById('startCam');
+    const captureBtn = document.getElementById('captureBtn');
+    const cropBtn = document.getElementById('cropBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    
+    let cropper;
+
+    // 1. تشغيل كاميرا الهاتف أو الكمبيوتر
+    startCamBtn.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment" }, // استخدام الكاميرا الخلفية للهواتف
+                audio: false 
+            });
+            video.srcObject = stream;
+            video.style.display = 'block';
+            captureBtn.style.display = 'inline-block';
+            startCamBtn.style.display = 'none';
+            image.style.display = 'none';
+            if(cropper) cropper.destroy();
+        } catch (err) {
+            alert("عذراً، لم نتمكن من الوصول للمستعرض أو الكاميرا: " + err);
+        }
+    });
+
+    // 2. التقاط الصورة من الفيديو
+    captureBtn.addEventListener('click', () => {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // رسم الفريم الحالي من الفيديو داخل الكانفاس
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // تحويل الكانفاس إلى رابط صورة
+        const imageDataUrl = canvas.toDataURL('image/png');
+        
+        // إيقاف الكاميرا لتوفير الطاقة
+        const stream = video.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+        
+        video.style.display = 'none';
+        captureBtn.style.display = 'none';
+        
+        // عرض الصورة وتفعيل أداة القص عليها
+        image.src = imageDataUrl;
+        image.style.display = 'block';
+        cropBtn.style.display = 'inline-block';
+
+        // تشغيل مكتبة القص
+        if (cropper) {
+            cropper.destroy();
+        }
+        cropper = new Cropper(image, {
+            viewMode: 1,
+            autoCropArea: 0.8, // تحديد مربع القص تلقائياً بنسبة 80% من الصورة
+            responsive: true,
+            restore: false,
+        });
+    });
+
+    // 3. معالجة القص وحفظ الصورة الناتجة
+    cropBtn.addEventListener('click', () => {
+        if (!cropper) return;
+
+        // الحصول على الكانفاس الخاص بالصورة المقصوصة بجودة عالية
+        const croppedCanvas = cropper.getCroppedCanvas({
+            maxWidth: 1024,
+            maxHeight: 1024,
+        });
+
+        // تحويل النتيجة لصورة وعرضها للمستخدم
+        const croppedImageDataUrl = croppedCanvas.toDataURL('image/png');
+        
+        cropper.destroy(); // إنهاء أداة القص
+        image.src = croppedImageDataUrl; // عرض الصورة النهائية المقصوصة فقط
+        
+        cropBtn.style.display = 'none';
+        
+        // تجهيز زر التحميل
+        downloadBtn.href = croppedImageDataUrl;
+        downloadBtn.style.display = 'inline-block';
+        
+        // إظهار زر إعادة التشغيل
+        startCamBtn.innerText = "تصوير صورة جديدة";
+        startCamBtn.style.display = 'inline-block';
+    });
+</script>
+
+</body>
+</html>
