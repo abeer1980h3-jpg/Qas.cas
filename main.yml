@@ -24,17 +24,13 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Create Base Web Directory
+    - name: Prepare Web Directory
       run: |
         mkdir -p www
-        cp index.html www/index.html || cp index2.html www/index.html || echo "No index file found"
+        cp index.html www/index.html || cp index2.html www/index.html || echo "No HTML file found"
 
     - name: Install Dependencies
       run: npm install
-
-    - name: Update Capacitor Config
-      run: |
-        echo '{"appId": "com.idcropper.app", "appName": "قص الهويات", "webDir": "www", "bundledWebRuntime": false}' > capacitor.config.json
 
     - name: Sync Web Code to Android
       run: npx cap sync android
