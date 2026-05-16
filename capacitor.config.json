@@ -1,0 +1,6 @@
+{
+  "appId": "com.idcropper.app",
+  "appName": "قص الهويات",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
